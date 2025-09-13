@@ -15,6 +15,7 @@ spec:
       containers:
       - name: sample-app
         image: rahulkaswa/hackathonapp:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 5000
 ---

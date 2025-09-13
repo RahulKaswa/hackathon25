@@ -14,7 +14,8 @@ spec:
     spec:
       containers:
       - name: prophet-predictor
-        image: rahulkaswa/prophet-predictor:v1
+        image: rahulkaswa/prophet-predictor:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 8000
 ---
