@@ -1,0 +1,16 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: sample-app-scaledobject
+spec:
+  scaleTargetRef:
+    name: sample-app
+  minReplicaCount: 1
+  maxReplicaCount: 10
+  triggers:
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus.default.svc.cluster.local:9090
+      metricName: predicted_load
+      query: predicted_load
+      threshold: "0.05"
