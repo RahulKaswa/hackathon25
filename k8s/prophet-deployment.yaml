@@ -19,7 +19,7 @@ spec:
     metadata:
       labels:
         app: prophet-predictor
-        version: v2.0.0
+        version: latest
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "8000"
@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
       - name: prophet-predictor
-        image: spudale/predictor:v2.0.5
+        image: hackathon25.azurecr.io/prophet-predictor:latest
         ports:
         - containerPort: 8000
           name: http

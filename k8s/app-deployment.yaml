@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: sample-app
-        image: spudale/app:v1
+        image: hackathon25.azurecr.io/hackathonapp:latest
         ports:
         - containerPort: 5000
 ---
