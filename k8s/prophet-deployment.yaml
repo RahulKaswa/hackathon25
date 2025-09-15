@@ -2,8 +2,16 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: prophet-predictor
+  labels:
+    app: prophet-predictor
+    version: v2.0.0
 spec:
-  replicas: 1
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
   selector:
     matchLabels:
       app: prophet-predictor
@@ -11,22 +19,147 @@ spec:
     metadata:
       labels:
         app: prophet-predictor
+        version: v2.0.0
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
     spec:
       containers:
       - name: prophet-predictor
-        image: hackathon25.azurecr.io/prophet-predictor:latest
-        imagePullPolicy: Always
+        image: spudale/predictor:v2.0.5
         ports:
         - containerPort: 8000
+          name: http
+        env:
+        - name: PROMETHEUS_URL
+          value: "http://prometheus:9090"
+        - name: REDIS_HOST
+          value: "redis"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: CACHE_ENABLED
+          value: "true"
+        - name: MODEL_TYPE_HTTP_REQUESTS
+          value: "prophet"
+        - name: MODEL_TYPE_CPU_USAGE
+          value: "ensemble"
+        - name: MODEL_TYPE_MEMORY_USAGE
+          value: "linear"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        volumeMounts:
+        - name: config
+          mountPath: /app/config.yaml
+          subPath: config.yaml
+          readOnly: true
+        - name: logs
+          mountPath: /app/logs
+      volumes:
+      - name: config
+        configMap:
+          name: predictor-config
+      - name: logs
+        emptyDir: {}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: prophet-predictor
+  labels:
+    app: prophet-predictor
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8000"
+    prometheus.io/path: "/metrics"
 spec:
+  type: ClusterIP
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: http
   selector:
     app: prophet-predictor
-  ports:
-    - protocol: TCP
-      port: 8000
-      targetPort: 8000
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: predictor-config
+  labels:
+    app: prophet-predictor
+data:
+  config.yaml: |
+    prometheus:
+      url: "http://prometheus:9090"
+      timeout: 30
+      retry_attempts: 3
+      retry_delay: 5
+
+    metrics:
+      - name: "http_requests"
+        query: "rate(http_requests_total[1m])"
+        step: "60s"
+        range_minutes: 60
+        prediction_periods: 5
+        prediction_frequency: "min"
+        threshold_min: 0.0
+        threshold_max: 1000.0
+      
+      - name: "cpu_usage"
+        query: "rate(container_cpu_usage_seconds_total[1m]) * 100"
+        step: "60s"
+        range_minutes: 120
+        prediction_periods: 10
+        prediction_frequency: "min"
+        threshold_min: 0.0
+        threshold_max: 100.0
+
+    model:
+      seasonality_mode: "additive"
+      changepoint_prior_scale: 0.05
+      seasonality_prior_scale: 10.0
+      holidays_prior_scale: 10.0
+      daily_seasonality: true
+      weekly_seasonality: true
+      yearly_seasonality: false
+      interval_width: 0.8
+
+    cache:
+      enabled: true
+      redis_host: "redis"
+      redis_port: 6379
+      redis_db: 0
+      ttl_seconds: 300
+      model_cache_ttl: 3600
+
+    debug: false
+    log_level: "INFO"
+    data_quality_min_points: 10
+    model_retrain_interval: 1800
