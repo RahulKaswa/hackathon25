@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: sample-app
-        image: rahulkaswa/hackathonapp:latest
+        image: hackathon25.azurecr.io/hackathonapp:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 5000

@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: prophet-predictor
-        image: rahulkaswa/prophet-predictor:latest
+        image: hackathon25.azurecr.io/prophet-predictor:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8000
