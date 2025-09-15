@@ -12,6 +12,9 @@ spec:
       labels:
         app: sample-app
     spec:
+      serviceAccountName: acr-service-account
+      imagePullSecrets:
+      - name: acr-secret
       containers:
       - name: sample-app
         image: hackathon25.azurecr.io/hackathonapp:latest

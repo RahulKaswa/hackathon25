@@ -25,6 +25,9 @@ spec:
         prometheus.io/port: "8000"
         prometheus.io/path: "/metrics"
     spec:
+      serviceAccountName: acr-service-account
+      imagePullSecrets:
+      - name: acr-secret
       containers:
       - name: prophet-predictor
         image: hackathon25.azurecr.io/prophet-predictor:latest
