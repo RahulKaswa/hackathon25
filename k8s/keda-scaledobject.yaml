@@ -2,15 +2,51 @@ apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
   name: sample-app-scaledobject
+  labels:
+    app: sample-app
+    version: v2.0.0
 spec:
   scaleTargetRef:
     name: sample-app
+  pollingInterval: 30
+  cooldownPeriod: 300
   minReplicaCount: 1
   maxReplicaCount: 10
+  triggers:
+  # Primary trigger: Predicted HTTP requests load (Prophet ML predictions)
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus.default.svc.cluster.local:9090
+      metricName: predicted_http_requests_load  
+      query: predicted_load{metric="http_requests"}
+      threshold: "0.001"
+  
+  # Fallback trigger: Current HTTP requests (if prediction fails)
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus.default.svc.cluster.local:9090
+      metricName: current_http_requests
+      query: rate(http_requests_total[1m])
+      threshold: "5"
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: predictor-service-scaledobject
+  labels:
+    app: prophet-predictor
+    version: v2.0.0
+spec:
+  scaleTargetRef:
+    name: prophet-predictor
+  pollingInterval: 60
+  cooldownPeriod: 300
+  minReplicaCount: 2
+  maxReplicaCount: 4
   triggers:
   - type: prometheus
     metadata:
       serverAddress: http://prometheus.default.svc.cluster.local:9090
-      metricName: predicted_load
-      query: predicted_load
-      threshold: "0.05"
+      metricName: predictor_predictions_per_minute
+      query: increase(predictor_predictions_total[1m])
+      threshold: "50"
