@@ -7,7 +7,7 @@ REQUEST_COUNT = Counter('http_requests_total', 'Total HTTP Requests')
 @app.route('/')
 def hello():
     REQUEST_COUNT.inc()
-    return "Hello from Sample App!...."
+    return "Hello from Sample App! CI/CD Test..."
 
 @app.route('/metrics')
 def metrics():
